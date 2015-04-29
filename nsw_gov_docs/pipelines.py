@@ -18,7 +18,10 @@ class LATabledDocFixPublishDate(object):
     def process_item(self, item, spider):
         published = item['date_tabled']
         if not isinstance(published, (datetime, date)):
-            item['date_tabled'] = datetime.strptime(published, '%d/%m/%Y').date()
+            try:
+                item['date_tabled'] = datetime.strptime(published, '%d/%m/%Y').date().isoformat()
+            except ValueError, err:
+                print("Failed to convert to date: '{}' [{}] . Continuing anyway.".format(published, str(err)))
         return item
 
 class LATabledDocSaveToScraperWikiPipeline(object):
