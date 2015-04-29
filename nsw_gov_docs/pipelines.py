@@ -26,7 +26,7 @@ class LATabledDocFixPublishDate(object):
 
 class LATabledDocSaveToScraperWikiPipeline(object):
     def process_item(self, item, spider):
-        unique_keys = ['paper_id']
+        unique_keys = ['paper_id', 'session_id']
         scraperwiki.sql.save(unique_keys, dict(item), table_name='data')
 
         return item

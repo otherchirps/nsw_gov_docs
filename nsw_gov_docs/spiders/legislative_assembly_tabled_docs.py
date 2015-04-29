@@ -78,6 +78,7 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
         # We want all the table rows that have data elements (ie. skip the header row)
         row_selector = '//div[@class="houseTable"]//tr/td/..'
         base_url = get_base_url(response)
+        session_id = response.meta['session_id']
 
         for row in response.xpath(row_selector):
             yield NswGovTabledDoc(
@@ -88,5 +89,6 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
                     base_url, self.get_xpath_value(row, 'td[3]/a/@href')
                 ),
                 type=self.get_xpath_value(row, 'td[4]/text()'),
-                laid_by=self.get_xpath_value(row, 'td[5]/text()')
+                laid_by=self.get_xpath_value(row, 'td[5]/text()'),
+                session_id=session_id
             )

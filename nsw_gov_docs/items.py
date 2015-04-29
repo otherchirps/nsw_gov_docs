@@ -15,4 +15,5 @@ class NswGovTabledDoc(scrapy.Item):
     url = scrapy.Field()
     type = scrapy.Field()
     laid_by = scrapy.Field()
+    session_id = scrapy.Field()
 
