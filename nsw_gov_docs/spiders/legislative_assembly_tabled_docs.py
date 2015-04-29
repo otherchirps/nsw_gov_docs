@@ -66,7 +66,6 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
             request = scrapy.Request(session_url, callback=self.parse_tabled_docs_page)
             request.meta['session_id'] = session
             yield request
-            break
 
     def parse_tabled_docs_page(self, response):
         """ The main event.
