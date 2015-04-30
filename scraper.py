@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+import os
+# morph.io requires this db filename, but scraperwiki doesn't nicely
+# expose a way to alter this. So we'll fiddle our environment ourselves
+# before our pipeline modules load.
+os.environ['SCRAPERWIKI_DATABASE_NAME'] = 'sqlite:///data.sqlite'
+
 from twisted.internet import reactor
 from scrapy.crawler import Crawler
 from scrapy import log, signals
