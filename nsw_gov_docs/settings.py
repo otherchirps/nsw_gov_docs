@@ -20,3 +20,10 @@ ITEM_PIPELINES = {
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'nsw_gov_docs (+http://www.yourdomain.com)'
+
+#CONCURRENT_REQUESTS = 8   # 16 default
+MEMDEBUG_ENABLED = True
+MEMUSAGE_ENABLED = True
+MEMUSAGE_LIMIT_MB = 100 # morph.io max per scraper.
+MEMUSAGE_REPORT = True
+
