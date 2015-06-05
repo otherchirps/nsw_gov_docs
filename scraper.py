@@ -12,7 +12,11 @@ from scrapy import log, signals
 from nsw_gov_docs.spiders.legislative_assembly_tabled_docs import LegislativeAssemblyTabledDocsSpider
 from scrapy.utils.project import get_project_settings
 
+print("Scraper running...")
+
 spider = LegislativeAssemblyTabledDocsSpider()
+print("spawned spider...")
+
 settings = get_project_settings()
 crawler = Crawler(settings)
 crawler.signals.connect(reactor.stop, signal=signals.spider_closed)

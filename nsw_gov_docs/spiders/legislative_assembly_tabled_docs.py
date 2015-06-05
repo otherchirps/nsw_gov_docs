@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import urlparse
 
+import resource
 import scrapy
 from scrapy.utils.response import get_base_url
 
@@ -92,3 +93,4 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
                 laid_by=self.get_xpath_value(row, 'td[5]/text()'),
                 session_id=session_id
             )
+            log.msg('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, level=log.INFO)
