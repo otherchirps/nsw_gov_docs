@@ -8,6 +8,11 @@
 import scrapy
 
 
+class NswGovSessionUri(scrapy.Item):
+    session_id = scrapy.Field()
+    session_uri = scrapy.Field()
+
+
 class NswGovTabledDoc(scrapy.Item):
     paper_id = scrapy.Field()
     date_tabled = scrapy.Field()
@@ -16,4 +21,3 @@ class NswGovTabledDoc(scrapy.Item):
     type = scrapy.Field()
     laid_by = scrapy.Field()
     session_id = scrapy.Field()
-

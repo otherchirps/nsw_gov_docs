@@ -3,18 +3,40 @@ import urlparse
 
 import resource
 import scrapy
+from scrapy.log import INFO, ERROR
 from scrapy.utils.response import get_base_url
+from scrapy.exceptions import CloseSpider, NotConfigured
+
+from nsw_gov_docs.items import (
+    NswGovSessionUri,
+    NswGovTabledDoc
+)
+from nsw_gov_docs.settings import MEMUSAGE_LIMIT_MB
 
 
-from nsw_gov_docs.items import NswGovTabledDoc
+class BaseLegislativeAssemblySpider(scrapy.Spider):
 
-
-class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
-    name = "legislative_assembly_tabled_docs"
     allowed_domains = ["parliament.nsw.gov.au"]
-    start_urls = (
-        'http://www.parliament.nsw.gov.au/prod/la/latabdoc.nsf/V3Home',
-    )
+
+    def __init__(self, name=None, **kwargs):
+        super(BaseLegislativeAssemblySpider, self).__init__(name, **kwargs)
+        self.killed = False
+        self._memory_limit = MEMUSAGE_LIMIT_MB * 1024
+
+    def _is_memusage_exceeded(self):
+        """ Debugging. The Memusage extension should take case
+        of this check for us.
+        """
+        usage_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+        self.log(
+            'Memory usage: %s (kb)' % usage_kb,
+            level=INFO
+        )
+
+        if usage_kb > self._memory_limit:
+            return True
+        return False
 
     def get_xpath_value(self, item, query, default=None):
         result = default
@@ -22,6 +44,22 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
         if values:
             result = values[0]
         return result
+
+    def closed(self, reason):
+        """ Called when the spider_closed signal is raised
+
+        See: http://doc.scrapy.org/en/latest/topics/signals.html#scrapy.signals.spider_closed
+        """
+        self.killed = True
+        self.log("spider_closed signal received: {}".format(reason), level=ERROR)
+
+
+class LegislativeAssemblySessionIndexSpider(BaseLegislativeAssemblySpider):
+    name = "legislative_assembly_parliament_sessions"
+    allowed_domains = ["parliament.nsw.gov.au"]
+    start_urls = (
+        'http://www.parliament.nsw.gov.au/prod/la/latabdoc.nsf/V3Home',
+    )
 
     def get_dbPath(self, response):
         # The index page contains several hidden input fields.
@@ -54,21 +92,36 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
         We want them all.
 
         So we need to walk each available session value, and yield
-        a request for the url this form would've sent the user to.
+        the url this form would've sent the user to.
         """
         selector = '//select[@name="jmpByPaperNumber"]/option/@value'
         db_path = self.get_dbPath(response)
         base_url = get_base_url(response)
 
         for session in response.xpath(selector).extract():
-            session_url = self.build_session_url(
+            session_uri = self.build_session_url(
                 base_url, db_path, session
             )
-            request = scrapy.Request(session_url, callback=self.parse_tabled_docs_page)
-            request.meta['session_id'] = session
-            yield request
+            if self.killed:
+                raise RuntimeError()
 
-    def parse_tabled_docs_page(self, response):
+            yield NswGovSessionUri(
+                session_id=session,
+                session_uri=session_uri
+            )
+
+
+class LegislativeAssemblyTabledDocsSpider(BaseLegislativeAssemblySpider):
+    name = "legislative_assembly_tabled_docs"
+
+    def start_requests(self):
+        start_url = self.settings.get('session_start_url', None)
+        if start_url is None:
+            raise NotConfigured("Missing session_start_url")
+
+        return [self.make_requests_from_url(start_url)]
+
+    def parse(self, response):
         """ The main event.
 
         After the paliamentary session has been selected, the list of all
@@ -79,9 +132,12 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
         # We want all the table rows that have data elements (ie. skip the header row)
         row_selector = '//div[@class="houseTable"]//tr/td/..'
         base_url = get_base_url(response)
-        session_id = response.meta['session_id']
+        session_id = self.settings.get('session_id')
 
         for row in response.xpath(row_selector):
+            if self.killed:
+                raise RuntimeError()
+
             yield NswGovTabledDoc(
                 paper_id=self.get_xpath_value(row, 'td[1]/text()'),
                 date_tabled=self.get_xpath_value(row, 'td[2]/text()'),
@@ -93,4 +149,8 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
                 laid_by=self.get_xpath_value(row, 'td[5]/text()'),
                 session_id=session_id
             )
-            log.msg('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, level=log.INFO)
+            if self._is_memusage_exceeded():
+                #self.killed = True
+                raise CloseSpider("memory_exceeded")
+
+
