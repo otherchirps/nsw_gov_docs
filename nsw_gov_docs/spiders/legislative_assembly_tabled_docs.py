@@ -3,6 +3,7 @@ import urlparse
 
 import resource
 import scrapy
+from scrapy import log
 from scrapy.utils.response import get_base_url
 
 
@@ -66,6 +67,7 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
             )
             request = scrapy.Request(session_url, callback=self.parse_tabled_docs_page)
             request.meta['session_id'] = session
+
             yield request
 
     def parse_tabled_docs_page(self, response):
@@ -81,6 +83,8 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
         base_url = get_base_url(response)
         session_id = response.meta['session_id']
 
+        memory_limit_kb = self.settings.getint('MEMUSAGE_LIMIT_MB') * 1024
+
         for row in response.xpath(row_selector):
             yield NswGovTabledDoc(
                 paper_id=self.get_xpath_value(row, 'td[1]/text()'),
@@ -93,4 +97,8 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
                 laid_by=self.get_xpath_value(row, 'td[5]/text()'),
                 session_id=session_id
             )
-            log.msg('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, level=log.INFO)
+            memory_usage_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            self.log('Memory usage: %s (kb)' % memory_usage_kb, level=log.INFO)
+            if memory_usage_kb >= memory_limit_kb:
+                self.log('Memory usage > %d KB' % memory_limit_kb, level=log.WARNING)
+
