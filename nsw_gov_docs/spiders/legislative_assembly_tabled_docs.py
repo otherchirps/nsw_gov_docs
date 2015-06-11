@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import urlparse
 
-import resource
+import psutil
 import scrapy
 from scrapy.log import INFO, ERROR
 from scrapy.utils.response import get_base_url
@@ -22,12 +22,14 @@ class BaseLegislativeAssemblySpider(scrapy.Spider):
         super(BaseLegislativeAssemblySpider, self).__init__(name, **kwargs)
         self.killed = False
         self._memory_limit = MEMUSAGE_LIMIT_MB * 1024
+        self.current_process = psutil.Process()
 
     def _is_memusage_exceeded(self):
         """ Debugging. The Memusage extension should take case
         of this check for us.
         """
-        usage_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_bytes_used, vms_bytes_used = self.current_process.memory_info()
+        usage_kb = rss_bytes_used / 1024
 
         self.log(
             'Memory usage: %s (kb)' % usage_kb,
@@ -152,5 +154,3 @@ class LegislativeAssemblyTabledDocsSpider(BaseLegislativeAssemblySpider):
             if self._is_memusage_exceeded():
                 #self.killed = True
                 raise CloseSpider("memory_exceeded")
-
-

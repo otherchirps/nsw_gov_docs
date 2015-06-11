@@ -1,3 +1,4 @@
 scraperwiki==0.4.1
 Scrapy==0.24.6
 service-identity==14.0.0
+psutil==2.2.1
