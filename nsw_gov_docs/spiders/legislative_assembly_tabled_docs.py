@@ -1,13 +1,20 @@
 # -*- coding: utf-8 -*-
 import urlparse
 
-import resource
+import psutil
 import scrapy
 from scrapy import log
 from scrapy.utils.response import get_base_url
 
 
 from nsw_gov_docs.items import NswGovTabledDoc
+
+
+current_process = psutil.Process()
+
+def get_current_memusage_kb():
+    rss_bytes_used, vms_bytes_used = current_process.memory_info()
+    return rss_bytes_used / 1024
 
 
 class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
@@ -97,8 +104,7 @@ class LegislativeAssemblyTabledDocsSpider(scrapy.Spider):
                 laid_by=self.get_xpath_value(row, 'td[5]/text()'),
                 session_id=session_id
             )
-            memory_usage_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            memory_usage_kb = get_current_memusage_kb()
             self.log('Memory usage: %s (kb)' % memory_usage_kb, level=log.INFO)
             if memory_usage_kb >= memory_limit_kb:
                 self.log('Memory usage > %d KB' % memory_limit_kb, level=log.WARNING)
-
