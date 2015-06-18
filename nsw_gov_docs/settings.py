@@ -30,3 +30,6 @@ MEMUSAGE_LIMIT_MB = 95 # morph.io max per scraper is 100MB.
 MEMUSAGE_CHECK_INTERVAL_SECONDS = 1.0
 #MEMUSAGE_REPORT = True
 
+DOWNLOADER_MIDDLEWARES = {
+    'nsw_gov_docs.middlewares.TabledDocPageDownloadMiddleware': 1000
+}
